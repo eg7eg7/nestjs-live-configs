@@ -1,0 +1,36 @@
+---
+description: Shared workspace context for nestjs-live-configs agents
+alwaysApply: true
+---
+
+# Workspace Context
+
+This repo is an Nx monorepo for `nestjs-live-configs`, a split NestJS live-configuration library.
+
+Key packages:
+- `packages/core`: `LiveConfigModule`, `LiveConfigService`, `LiveConfigRef`, shared contracts, and adapter helpers
+- `packages/adapter-redis`, `packages/adapter-postgres`, `packages/adapter-sqlite`, `packages/adapter-mongo`: backend-specific store and sync bundles
+- `examples/demo-app`: local-only demo app for exercising runtime config reads and updates
+
+Core design rules:
+- Consumers should read config through `LiveConfigService` or `LiveConfigRef`, not inject primitive values at boot time.
+- Keep backend-specific runtime dependencies out of `packages/core`.
+- Preserve the split between store adapters and sync adapters.
+- Prefer pub/sub or push-style sync when the backend supports it; use polling as the fallback.
+
+Useful references:
+- `README.md`: user-facing overview, installation, backend selection, and quick start
+- `.cursor/skills.md`: repo commands, implementation habits, and shared guidance
+- `.cursor/skills/`: task-specific skills for adapters, validation, and release work
+- `examples/demo-app`: demo app uses Nest CLI `start`, `start:dev`, and `build` scripts, prebuilds local package dependencies, and exposes Swagger at `/docs`
+
+Common validation:
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- `docker compose up -d` for local databases
+
+Maintenance:
+- If you change package layout, supported backends, important workflows, commands, or conventions, update this file in the same task.
+- Keep this file short, current, and practical; replace stale guidance instead of only appending new notes.

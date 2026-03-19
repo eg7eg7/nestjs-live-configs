@@ -58,8 +58,7 @@ export function createDemoBackend(env: NodeJS.ProcessEnv): DemoBackend {
   return {
     ...description,
     adapter: createSqliteAdapter({
-      uri:
-        env.LIVE_CONFIG_SQLITE_URI ?? 'sqlite://./tmp/live-config-demo.sqlite',
+      uri: env.LIVE_CONFIG_SQLITE_URI ?? 'sqlite://./live-config-demo.sqlite',
       namespace: env.LIVE_CONFIG_NAMESPACE ?? 'demo-app',
       table: env.LIVE_CONFIG_SQLITE_TABLE ?? 'live_config_values',
     }),

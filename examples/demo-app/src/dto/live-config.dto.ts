@@ -1,4 +1,5 @@
 import { Transform } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsIn,
   IsBoolean,
@@ -12,6 +13,13 @@ import {
 } from 'class-validator';
 
 export class UpdateLiveConfigValueDto {
+  @ApiProperty({
+    type: String,
+    description: 'New config value for the message setting.',
+    minLength: 1,
+    maxLength: 512,
+    example: 'Hello from Swagger',
+  })
   @IsString()
   @MinLength(1)
   @MaxLength(512)
@@ -19,22 +27,47 @@ export class UpdateLiveConfigValueDto {
 }
 
 export class UpdateThemeValueDto {
+  @ApiProperty({
+    type: String,
+    description: 'Theme value stored in live config.',
+    enum: ['light', 'dark'],
+    example: 'dark',
+  })
   @IsString()
   @IsIn(['light', 'dark'])
   public value!: 'light' | 'dark';
 }
 
 export class LiveConfigReadQueryDto {
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Force a fresh store read instead of using cached data.',
+    example: false,
+  })
   @IsOptional()
   @Transform(({ value }) => parseOptionalBoolean(value))
   @IsBoolean()
   public forceRefresh?: boolean;
 
+  @ApiPropertyOptional({
+    type: Boolean,
+    description:
+      'Prefer push-based sync when the configured adapter supports it.',
+    example: true,
+  })
   @IsOptional()
   @Transform(({ value }) => parseOptionalBoolean(value))
   @IsBoolean()
   public preferPubSub?: boolean;
 
+  @ApiPropertyOptional({
+    type: Number,
+    description:
+      'Maximum cached age in milliseconds before a fresh read is required.',
+    minimum: 0,
+    maximum: 86_400_000,
+    example: 5000,
+  })
   @IsOptional()
   @Transform(({ value }) => parseOptionalNumber(value))
   @IsInt()
@@ -42,6 +75,14 @@ export class LiveConfigReadQueryDto {
   @Max(86_400_000)
   public staleTtlMs?: number;
 
+  @ApiPropertyOptional({
+    type: Number,
+    description:
+      'Polling interval in milliseconds when using polling-based sync.',
+    minimum: 100,
+    maximum: 60_000,
+    example: 1000,
+  })
   @IsOptional()
   @Transform(({ value }) => parseOptionalNumber(value))
   @IsInt()

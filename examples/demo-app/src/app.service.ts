@@ -4,7 +4,7 @@ import {
   LiveConfigService,
   type LiveConfigReadOptions,
 } from '@nestjs-live-configs/core';
-import { demoMessageConfig, demoThemeConfig } from './demo.config.ts';
+import { demoMessageConfig, demoThemeConfig } from './demo.config.js';
 
 @Injectable()
 export class AppService {

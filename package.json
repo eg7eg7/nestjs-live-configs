@@ -27,12 +27,15 @@
     "version:packages": "changeset version",
     "release": "changeset publish",
     "prepare": "husky",
-    "demo:start": "nx start @nestjs-live-configs/demo-app",
-    "demo:dev": "nx dev @nestjs-live-configs/demo-app"
+    "demo:build": "npm run build --workspace @nestjs-live-configs/demo-app",
+    "demo:start": "npm run start --workspace @nestjs-live-configs/demo-app",
+    "demo:dev": "npm run start:dev --workspace @nestjs-live-configs/demo-app",
+    "demo:start:prod": "npm run start:prod --workspace @nestjs-live-configs/demo-app"
   },
   "devDependencies": {
     "@changesets/cli": "^2.30.0",
     "@eslint/js": "^10.0.1",
+    "@nestjs/cli": "^11.0.16",
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",

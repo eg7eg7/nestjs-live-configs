@@ -3,9 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "tsx src/main.ts",
-    "dev": "tsx watch src/main.ts",
-    "typecheck": "tsc --noEmit -p ../../tsconfig.json"
+    "build:local-deps": "npm run build --workspace @nestjs-live-configs/core && npm run build --workspace @nestjs-live-configs/adapter-sqlite && npm run build --workspace @nestjs-live-configs/adapter-redis && npm run build --workspace @nestjs-live-configs/adapter-postgres && npm run build --workspace @nestjs-live-configs/adapter-mongo",
+    "pretypecheck": "npm run build:local-deps",
+    "prestart": "npm run build:local-deps",
+    "prestart:dev": "npm run build:local-deps",
+    "prebuild": "npm run build:local-deps",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "build": "nest build",
+    "start:prod": "node dist/main",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@nestjs-live-configs/adapter-mongo": "file:../../packages/adapter-mongo",
@@ -16,9 +23,11 @@
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
+    "@nestjs/swagger": "^11.2.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "swagger-ui-express": "^5.0.1"
   }
 }
