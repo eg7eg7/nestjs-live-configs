@@ -1,0 +1,3 @@
+export const LIVE_CONFIG_OPTIONS = Symbol('LIVE_CONFIG_OPTIONS');
+export const LIVE_CONFIG_STORE = Symbol('LIVE_CONFIG_STORE');
+export const LIVE_CONFIG_SYNC = Symbol('LIVE_CONFIG_SYNC');
