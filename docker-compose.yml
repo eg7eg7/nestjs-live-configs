@@ -22,3 +22,17 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  mongo:
+    image: mongo:8
+    ports:
+      - '27017:27017'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "echo 'db.runCommand({ ping: 1 }).ok' | mongosh localhost:27017/live_config --quiet",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10

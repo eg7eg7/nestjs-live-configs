@@ -8,13 +8,16 @@
     "typecheck": "tsc --noEmit -p ../../tsconfig.json"
   },
   "dependencies": {
-    "@nestjs-live-configs/adapter-postgres": "0.1.0",
-    "@nestjs-live-configs/adapter-redis": "0.1.0",
-    "@nestjs-live-configs/adapter-sqlite": "0.1.0",
-    "@nestjs-live-configs/core": "0.1.0",
+    "@nestjs-live-configs/adapter-mongo": "file:../../packages/adapter-mongo",
+    "@nestjs-live-configs/adapter-postgres": "file:../../packages/adapter-postgres",
+    "@nestjs-live-configs/adapter-redis": "file:../../packages/adapter-redis",
+    "@nestjs-live-configs/adapter-sqlite": "file:../../packages/adapter-sqlite",
+    "@nestjs-live-configs/core": "file:../../packages/core",
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   }

@@ -13,6 +13,9 @@
       "@nestjs-live-configs/adapter-postgres": [
         "packages/adapter-postgres/src/index.ts"
       ],
+      "@nestjs-live-configs/adapter-mongo": [
+        "packages/adapter-mongo/src/index.ts"
+      ],
       "@nestjs-live-configs/adapter-sqlite": [
         "packages/adapter-sqlite/src/index.ts"
       ]

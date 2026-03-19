@@ -1,5 +1,6 @@
 import { createClient, type RedisClientType } from 'redis';
 
+import { parseConfigChangeEventPayload } from '@nestjs-live-configs/core';
 import type {
   ConfigChangeEvent,
   ConfigChangeListener,
@@ -33,7 +34,11 @@ export class RedisSyncAdapter implements ConfigSyncAdapter {
 
     await this.subscriber.connect();
     await this.subscriber.subscribe(this.channel, (message) => {
-      const event = JSON.parse(message) as ConfigChangeEvent;
+      const event = parseMessage(message);
+      if (event === undefined) {
+        return;
+      }
+
       void listener(event);
     });
   }
@@ -68,4 +73,12 @@ export function createRedisSyncAdapter(
   options: RedisSyncAdapterOptions,
 ): ConfigSyncAdapter {
   return new RedisSyncAdapter(options);
+}
+
+function parseMessage(message: string): ConfigChangeEvent | undefined {
+  try {
+    return parseConfigChangeEventPayload(JSON.parse(message));
+  } catch {
+    return undefined;
+  }
 }

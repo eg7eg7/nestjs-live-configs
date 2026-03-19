@@ -22,14 +22,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check formatting
+        run: npm run format:check
+
       - name: Lint
-        run: npx nx run-many -t lint --projects=@nestjs-live-configs/core,@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres,@nestjs-live-configs/demo-app
+        run: npx nx run-many -t lint --projects=@nestjs-live-configs/core,@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres,@nestjs-live-configs/adapter-mongo,@nestjs-live-configs/demo-app
 
       - name: Typecheck
-        run: npx nx run-many -t typecheck --projects=@nestjs-live-configs/core,@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres,@nestjs-live-configs/demo-app
+        run: npx nx run-many -t typecheck --projects=@nestjs-live-configs/core,@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres,@nestjs-live-configs/adapter-mongo,@nestjs-live-configs/demo-app
 
       - name: Build
-        run: npx nx run-many -t build --projects=@nestjs-live-configs/core,@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres
+        run: npx nx run-many -t build --projects=@nestjs-live-configs/core,@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres,@nestjs-live-configs/adapter-mongo
 
       - name: Run unit tests
         run: npx nx test @nestjs-live-configs/core
@@ -43,6 +46,7 @@ jobs:
           - sqlite
           - redis
           - postgres
+          - mongo
     services:
       redis:
         image: redis:8-alpine
@@ -66,9 +70,19 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      mongo:
+        image: mongo:8
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "echo 'db.runCommand({ ping: 1 }).ok' | mongosh localhost:27017/test --quiet"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       REDIS_URL: redis://localhost:6379
       POSTGRES_URL: postgres://postgres:postgres@localhost:5432/live_config
+      MONGODB_URL: mongodb://localhost:27017/live_config
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -93,5 +107,8 @@ jobs:
               ;;
             postgres)
               npx nx test @nestjs-live-configs/adapter-postgres
+              ;;
+            mongo)
+              npx nx test @nestjs-live-configs/adapter-mongo
               ;;
           esac

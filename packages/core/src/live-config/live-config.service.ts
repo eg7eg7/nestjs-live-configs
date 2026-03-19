@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { LiveConfigRef } from './live-config.ref.ts';
+import { compareStoredConfigRecords } from './live-config.guards.ts';
 import {
   createStoredRecord,
   deserializeValue,
@@ -43,6 +44,7 @@ export class LiveConfigService implements OnModuleInit, OnModuleDestroy {
     string,
     Promise<StoredConfigRecord | undefined>
   >();
+  private readonly watchedKeys = new Set<string>();
   private readonly definitions = new Map<
     string,
     LiveConfigDefinition<unknown>
@@ -71,8 +73,18 @@ export class LiveConfigService implements OnModuleInit, OnModuleDestroy {
   }
 
   public async onModuleDestroy(): Promise<void> {
-    await this.sync.close?.();
-    await this.store.close?.();
+    await Promise.allSettled(
+      [...this.watchedKeys].map(async (key) => {
+        await this.sync.unwatchKey?.(key);
+      }),
+    );
+    this.watchedKeys.clear();
+
+    try {
+      await this.sync.close?.();
+    } finally {
+      await this.store.close?.();
+    }
   }
 
   public ref<T>(
@@ -141,6 +153,16 @@ export class LiveConfigService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  public async unwatch<T>(definitionOrKey: LiveConfigDefinition<T> | string) {
+    const key =
+      typeof definitionOrKey === 'string'
+        ? definitionOrKey
+        : definitionOrKey.key;
+
+    this.watchedKeys.delete(key);
+    await this.sync.unwatchKey?.(key);
+  }
+
   private async readFromStoreOrDefault<T>(
     definition: LiveConfigDefinition<T>,
   ): Promise<T> {
@@ -198,9 +220,14 @@ export class LiveConfigService implements OnModuleInit, OnModuleDestroy {
     }
 
     await this.sync.watchKey?.(key, options.watchIntervalMs);
+    this.watchedKeys.add(key);
   }
 
   private async handleChangeEvent(event: ConfigChangeEvent): Promise<void> {
+    if (!this.definitions.has(event.key)) {
+      return;
+    }
+
     const cachedVersion = this.cache.get(event.key)?.record.version;
     if (cachedVersion === event.version) {
       return;
@@ -228,10 +255,28 @@ export class LiveConfigService implements OnModuleInit, OnModuleDestroy {
   private async fetchAndCacheRecord(
     key: string,
   ): Promise<StoredConfigRecord | undefined> {
+    const cachedRecordBeforeFetch = this.cache.get(key)?.record;
     const record = await this.store.get(key);
+
+    const currentCachedRecord = this.cache.get(key)?.record;
     if (record === undefined) {
-      this.cache.delete(key);
-      return undefined;
+      if (
+        currentCachedRecord === undefined ||
+        currentCachedRecord.version === cachedRecordBeforeFetch?.version
+      ) {
+        this.cache.delete(key);
+        return undefined;
+      }
+
+      return currentCachedRecord;
+    }
+
+    if (
+      currentCachedRecord !== undefined &&
+      currentCachedRecord.version !== cachedRecordBeforeFetch?.version &&
+      compareStoredConfigRecords(currentCachedRecord, record) > 0
+    ) {
+      return currentCachedRecord;
     }
 
     this.cache.set(key, {

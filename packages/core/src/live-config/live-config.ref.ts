@@ -18,4 +18,8 @@ export class LiveConfigRef<T> {
   public set(value: T): Promise<T> {
     return this.service.set(this.definition, value);
   }
+
+  public close(): Promise<void> {
+    return this.service.unwatch(this.definition);
+  }
 }

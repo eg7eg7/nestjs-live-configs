@@ -97,4 +97,87 @@ describe('LiveConfigService', () => {
     expect(sync.publishedEvents).toHaveLength(1);
     expect(sync.publishedEvents[0]?.key).toBe(appNameConfig.key);
   });
+
+  it('ignores pub/sub events for unknown keys', async () => {
+    const store = new MemoryStoreAdapter();
+    const sync = new ManualPubSubSyncAdapter();
+
+    const service = new LiveConfigService(store, sync, {
+      store,
+      sync,
+      defaults: {
+        preferPubSub: true,
+      },
+    });
+
+    activeServices.push(service);
+    await service.onModuleInit();
+
+    await sync.emit({
+      key: 'unknown.key',
+      version: '1',
+      updatedAt: new Date().toISOString(),
+    });
+
+    expect(store.getCalls).toBe(0);
+  });
+
+  it('does not let an older refresh overwrite a newer cached value', async () => {
+    const staleRecord = {
+      key: appNameConfig.key,
+      payload: 'stale',
+      version: '100-stale',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    };
+    const store = new RacyStoreAdapter(staleRecord);
+    const sync = new NoopSyncAdapter();
+
+    const service = new LiveConfigService(store, sync, {
+      store,
+      sync,
+    });
+    store.attachService(service);
+
+    activeServices.push(service);
+    await service.onModuleInit();
+
+    await expect(
+      service.get(appNameConfig, {
+        forceRefresh: true,
+      }),
+    ).resolves.toBe('fresh');
+    await expect(service.get(appNameConfig)).resolves.toBe('fresh');
+  });
 });
+
+class RacyStoreAdapter extends MemoryStoreAdapter {
+  private service?: LiveConfigService;
+  private hasInjectedFreshWrite = false;
+
+  public constructor(
+    private readonly staleRecord: {
+      key: string;
+      payload: unknown;
+      version: string;
+      updatedAt: string;
+    },
+  ) {
+    super();
+  }
+
+  public attachService(service: LiveConfigService): void {
+    this.service = service;
+  }
+
+  public override async get(key: string) {
+    this.getCalls += 1;
+
+    if (!this.hasInjectedFreshWrite) {
+      this.hasInjectedFreshWrite = true;
+      await this.service?.set(appNameConfig, 'fresh');
+      return structuredClone(this.staleRecord);
+    }
+
+    return super.get(key);
+  }
+}

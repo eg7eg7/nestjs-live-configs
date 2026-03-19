@@ -4,8 +4,13 @@ import { PollingSyncAdapter } from '../../src/live-config/adapters/polling-sync.
 import {
   createStoredRecord,
   defineConfig,
+  mergeReadOptions,
 } from '../../src/live-config/live-config.registry.ts';
 import { LiveConfigService } from '../../src/live-config/live-config.service.ts';
+import type {
+  ConfigChangeEvent,
+  ConfigChangeListener,
+} from '../../src/live-config/types.ts';
 import {
   ManualPubSubSyncAdapter,
   MemoryStoreAdapter,
@@ -129,4 +134,76 @@ describe('LiveConfigService read options', () => {
       await expect(ref.get()).resolves.toBe(5);
     });
   });
+
+  it('clamps unsafe read option values to safe bounds', () => {
+    expect(
+      mergeReadOptions(
+        {
+          staleTtlMs: -5,
+          watchIntervalMs: 1,
+        },
+        {
+          staleTtlMs: 999_999_999,
+          watchIntervalMs: 5,
+        },
+      ),
+    ).toEqual({
+      forceRefresh: false,
+      preferPubSub: true,
+      staleTtlMs: 86_400_000,
+      watchIntervalMs: 100,
+    });
+  });
+
+  it('can explicitly unwatch polling keys through a ref', async () => {
+    const store = new MemoryStoreAdapter([
+      createStoredRecord(sampleRateConfig, 2),
+    ]);
+    const sync = new WatchableSyncAdapter();
+
+    const service = new LiveConfigService(store, sync, {
+      store,
+      sync,
+    });
+
+    activeServices.push(service);
+    await service.onModuleInit();
+
+    const ref = service.ref(sampleRateConfig, {
+      preferPubSub: false,
+      watchIntervalMs: 250,
+    });
+
+    await expect(ref.get()).resolves.toBe(2);
+    await ref.close();
+
+    expect(sync.watchCalls).toEqual([
+      {
+        key: sampleRateConfig.key,
+        intervalMs: 250,
+      },
+    ]);
+    expect(sync.unwatchCalls).toEqual([sampleRateConfig.key]);
+  });
 });
+
+class WatchableSyncAdapter {
+  public readonly strategy = 'polling' as const;
+  public readonly watchCalls: Array<{ key: string; intervalMs: number }> = [];
+  public readonly unwatchCalls: string[] = [];
+
+  public async start(_listener: ConfigChangeListener): Promise<void> {}
+
+  public async publish(_event: ConfigChangeEvent): Promise<void> {}
+
+  public async watchKey(key: string, intervalMs: number): Promise<void> {
+    this.watchCalls.push({
+      key,
+      intervalMs,
+    });
+  }
+
+  public async unwatchKey(key: string): Promise<void> {
+    this.unwatchCalls.push(key);
+  }
+}

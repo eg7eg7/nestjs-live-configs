@@ -24,7 +24,7 @@
   },
   "scripts": {
     "build": "tsup --config tsup.config.ts",
-    "test": "vitest --root ../../ run packages/adapter-redis/test/integration/redis-sync.adapter.spec.ts --config vitest.config.ts",
+    "test": "vitest --root ../../ run packages/adapter-redis/test --config vitest.config.ts",
     "typecheck": "tsc --noEmit -p ../../tsconfig.json"
   },
   "dependencies": {

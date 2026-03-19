@@ -1,7 +1,7 @@
 {
-  "name": "@nestjs-live-configs/adapter-postgres",
+  "name": "@nestjs-live-configs/adapter-mongo",
   "version": "0.1.0",
-  "description": "Postgres adapter package for nestjs live configs.",
+  "description": "MongoDB adapter package for nestjs live configs.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -24,13 +24,12 @@
   },
   "scripts": {
     "build": "tsup --config tsup.config.ts",
-    "test": "vitest --root ../../ run packages/adapter-postgres/test --config vitest.config.ts",
+    "test": "vitest --root ../../ run packages/adapter-mongo/test --config vitest.config.ts",
     "typecheck": "tsc --noEmit -p ../../tsconfig.json"
   },
   "dependencies": {
-    "@keyv/postgres": "^2.2.3",
+    "@keyv/mongo": "^3.1.0",
     "@nestjs-live-configs/core": "^0.1.0",
-    "keyv": "^5.6.0",
-    "pg": "^8.20.0"
+    "keyv": "^5.6.0"
   }
 }

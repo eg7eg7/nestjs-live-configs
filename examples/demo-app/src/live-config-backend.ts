@@ -2,11 +2,12 @@ import {
   type LiveConfigAdapter,
   type LiveConfigDefaultOptions,
 } from '@nestjs-live-configs/core';
+import { createMongoAdapter } from '@nestjs-live-configs/adapter-mongo';
 import { createPostgresAdapter } from '@nestjs-live-configs/adapter-postgres';
 import { createRedisAdapter } from '@nestjs-live-configs/adapter-redis';
 import { createSqliteAdapter } from '@nestjs-live-configs/adapter-sqlite';
 
-type DemoDriver = 'sqlite' | 'redis' | 'postgres';
+type DemoDriver = 'sqlite' | 'redis' | 'postgres' | 'mongo';
 
 export interface DemoBackend {
   driver: DemoDriver;
@@ -42,6 +43,18 @@ export function createDemoBackend(env: NodeJS.ProcessEnv): DemoBackend {
     };
   }
 
+  if (description.driver === 'mongo') {
+    return {
+      ...description,
+      adapter: createMongoAdapter({
+        uri:
+          env.LIVE_CONFIG_MONGO_URL ?? 'mongodb://localhost:27017/live_config',
+        namespace: env.LIVE_CONFIG_NAMESPACE ?? 'demo-app',
+        collection: env.LIVE_CONFIG_MONGO_COLLECTION ?? 'live_config_values',
+      }),
+    };
+  }
+
   return {
     ...description,
     adapter: createSqliteAdapter({
@@ -66,7 +79,12 @@ export function describeDemoBackend(
 }
 
 function parseDriver(value: string | undefined): DemoDriver {
-  if (value === 'redis' || value === 'postgres' || value === 'sqlite') {
+  if (
+    value === 'redis' ||
+    value === 'postgres' ||
+    value === 'sqlite' ||
+    value === 'mongo'
+  ) {
     return value;
   }
 

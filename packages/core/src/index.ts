@@ -1,6 +1,7 @@
 export * from './live-config/adapters/keyv-store.adapter.ts';
 export * from './live-config/adapters/noop-sync.adapter.ts';
 export * from './live-config/adapters/polling-sync.adapter.ts';
+export * from './live-config/live-config.guards.ts';
 export * from './live-config/live-config.module.ts';
 export * from './live-config/live-config.ref.ts';
 export * from './live-config/live-config.registry.ts';

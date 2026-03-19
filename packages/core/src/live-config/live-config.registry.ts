@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
+import { clampStaleTtlMs, clampWatchIntervalMs } from './live-config.guards.ts';
 import type {
   LiveConfigDefaultOptions,
   LiveConfigDefinition,
@@ -79,10 +80,18 @@ export function mergeReadOptions(
   defaults?: LiveConfigDefaultOptions,
   overrides?: LiveConfigReadOptions,
 ): ResolvedLiveConfigReadOptions {
+  const staleTtlMs = overrides?.staleTtlMs ?? defaults?.staleTtlMs;
+  const watchIntervalMs =
+    overrides?.watchIntervalMs ?? defaults?.watchIntervalMs;
+
   return {
     ...DEFAULT_READ_OPTIONS,
-    staleTtlMs: overrides?.staleTtlMs ?? defaults?.staleTtlMs,
-    watchIntervalMs: overrides?.watchIntervalMs ?? defaults?.watchIntervalMs,
+    staleTtlMs:
+      staleTtlMs === undefined ? undefined : clampStaleTtlMs(staleTtlMs),
+    watchIntervalMs:
+      watchIntervalMs === undefined
+        ? undefined
+        : clampWatchIntervalMs(watchIntervalMs),
     preferPubSub: overrides?.preferPubSub ?? defaults?.preferPubSub ?? true,
     forceRefresh:
       overrides?.forceRefresh ?? defaults?.forceRefreshOnRead ?? false,

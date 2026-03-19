@@ -4,6 +4,7 @@ import type {
   ConfigStoreAdapter,
   ConfigSyncAdapter,
 } from '../types.ts';
+import { clampWatchIntervalMs } from '../live-config.guards.ts';
 
 export interface PollingSyncAdapterOptions {
   store: ConfigStoreAdapter;
@@ -28,7 +29,7 @@ export class PollingSyncAdapter implements ConfigSyncAdapter {
   }
 
   public async watchKey(key: string, intervalMs: number): Promise<void> {
-    const nextInterval = Math.max(intervalMs, 100);
+    const nextInterval = clampWatchIntervalMs(intervalMs);
     const currentInterval = this.intervals.get(key);
 
     if (currentInterval !== undefined && currentInterval <= nextInterval) {

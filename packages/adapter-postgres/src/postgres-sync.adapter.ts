@@ -1,5 +1,6 @@
 import { Client } from 'pg';
 
+import { parseConfigChangeEventPayload } from '@nestjs-live-configs/core';
 import type {
   ConfigChangeEvent,
   ConfigChangeListener,
@@ -19,7 +20,9 @@ export class PostgresSyncAdapter implements ConfigSyncAdapter {
   private subscriber?: Client;
 
   public constructor(private readonly options: PostgresSyncAdapterOptions) {
-    this.channel = options.channel ?? 'live_config_changes';
+    this.channel = assertValidChannelName(
+      options.channel ?? 'live_config_changes',
+    );
   }
 
   public async start(listener: ConfigChangeListener): Promise<void> {
@@ -37,7 +40,11 @@ export class PostgresSyncAdapter implements ConfigSyncAdapter {
         return;
       }
 
-      const event = JSON.parse(message.payload) as ConfigChangeEvent;
+      const event = parseNotificationPayload(message.payload);
+      if (event === undefined) {
+        return;
+      }
+
       void listener(event);
     });
 
@@ -77,4 +84,24 @@ export function createPostgresSyncAdapter(
   options: PostgresSyncAdapterOptions,
 ): ConfigSyncAdapter {
   return new PostgresSyncAdapter(options);
+}
+
+function parseNotificationPayload(
+  payload: string,
+): ConfigChangeEvent | undefined {
+  try {
+    return parseConfigChangeEventPayload(JSON.parse(payload));
+  } catch {
+    return undefined;
+  }
+}
+
+function assertValidChannelName(channel: string): string {
+  if (!/^[A-Za-z_][A-Za-z0-9_]{0,62}$/.test(channel)) {
+    throw new Error(
+      'Postgres sync channel names must match /^[A-Za-z_][A-Za-z0-9_]{0,62}$/',
+    );
+  }
+
+  return channel;
 }
