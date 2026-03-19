@@ -1,36 +1,25 @@
 {
-  "name": "nestjs-live-configs",
+  "name": "@nestjs-live-configs/workspace",
   "version": "0.1.0",
-  "description": "NestJS live configuration module with Keyv-backed storage and live synchronization.",
+  "description": "Workspace for NestJS live config core and adapter packages.",
   "license": "MIT",
-  "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "examples/*"
   ],
-  "sideEffects": false,
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsup",
-    "clean": "rimraf dist coverage",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "nx": "nx",
+    "build": "nx run-many -t build --projects=@nestjs-live-configs/core,@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres",
+    "clean": "rimraf coverage dist packages/*/dist examples/*/dist",
+    "lint": "nx run-many -t lint --projects=@nestjs-live-configs/core,@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres,@nestjs-live-configs/demo-app",
+    "typecheck": "nx run-many -t typecheck --projects=@nestjs-live-configs/core,@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres,@nestjs-live-configs/demo-app",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "vitest run test/unit",
-    "test:integration": "vitest run test/integration",
+    "test:unit": "nx test @nestjs-live-configs/core",
+    "test:integration": "nx run-many -t test --projects=@nestjs-live-configs/adapter-sqlite,@nestjs-live-configs/adapter-redis,@nestjs-live-configs/adapter-postgres",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -38,22 +27,8 @@
     "version:packages": "changeset version",
     "release": "changeset publish",
     "prepare": "husky",
-    "demo:start": "tsx examples/demo-app/src/main.ts",
-    "demo:dev": "tsx watch examples/demo-app/src/main.ts"
-  },
-  "peerDependencies": {
-    "@nestjs/common": ">=10",
-    "@nestjs/core": ">=10",
-    "reflect-metadata": ">=0.2",
-    "rxjs": ">=7"
-  },
-  "dependencies": {
-    "@keyv/postgres": "^2.2.3",
-    "@keyv/redis": "^5.1.6",
-    "@keyv/sqlite": "^4.0.8",
-    "keyv": "^5.6.0",
-    "pg": "^8.20.0",
-    "redis": "^5.11.0"
+    "demo:start": "nx start @nestjs-live-configs/demo-app",
+    "demo:dev": "nx dev @nestjs-live-configs/demo-app"
   },
   "devDependencies": {
     "@changesets/cli": "^2.30.0",
@@ -62,6 +37,8 @@
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
     "@nestjs/testing": "^11.1.17",
+    "@nx/eslint": "22.6.0",
+    "@nx/vitest": "22.6.0",
     "@types/node": "^25.5.0",
     "@types/pg": "^8.18.0",
     "@vitest/coverage-v8": "^4.1.0",
@@ -69,6 +46,7 @@
     "globals": "^17.4.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
+    "nx": "22.6.0",
     "prettier": "^3.8.1",
     "reflect-metadata": "^0.2.2",
     "rimraf": "^6.1.3",
@@ -77,6 +55,8 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.1",
+    "vite": "^7.0.0",
+    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.0"
   }
 }

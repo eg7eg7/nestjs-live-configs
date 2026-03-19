@@ -1,33 +1,58 @@
 # `nestjs-live-configs`
 
-A NestJS module for live configuration values backed by a database through Keyv adapters.
+Nx monorepo for a split NestJS live-configuration system.
 
-The module is designed around one rule: consumers should resolve configuration through `LiveConfigService` or `LiveConfigRef`, not by injecting a primitive value at startup. That keeps reads fresh when settings change at runtime.
+The core rule is unchanged: consuming services should resolve settings through `LiveConfigService` or `LiveConfigRef`, not by injecting boot-time primitive values. That keeps reads fresh when configuration changes at runtime.
 
-## Features
+## Packages
 
-- Keyv-backed storage so the persistence layer can be swapped behind a common adapter contract.
-- Pub/sub-first synchronization for backends that support it.
-- Polling fallback for backends that cannot push invalidations.
-- Module-level read defaults plus per-call overrides.
-- Strict TypeScript configuration with `strictNullChecks`.
-- Dual package output for both ESM and CommonJS consumers.
-- Demo Nest app and local Docker services for Redis and Postgres.
+This repo is split so consumers install only the backend packages they need.
 
-## Supported Backends
+- `@nestjs-live-configs/core`: Nest module, service, config definition helpers, unified adapter contracts, noop sync, polling sync, and generic `KeyvStoreAdapter`
+- `@nestjs-live-configs/adapter-redis`: Redis Keyv store plus Redis pub/sub sync
+- `@nestjs-live-configs/adapter-postgres`: Postgres Keyv store plus `LISTEN`/`NOTIFY` sync
+- `@nestjs-live-configs/adapter-sqlite`: SQLite Keyv store plus polling-oriented adapter bundle
 
-This package exports helpers for:
+## Why The Split
 
-- SQLite via `createSqliteKeyvStore()`
-- Redis via `createRedisKeyvStore()` and `createRedisSyncAdapter()`
-- Postgres via `createPostgresKeyvStore()` and `createPostgresSyncAdapter()`
+The old all-in-one package forced consumers to install Redis, Postgres, and SQLite-related packages even when they only needed one backend.
 
-You can also wrap any custom `Keyv` instance with `createKeyvStore()`.
+The current structure keeps:
+
+- the core service API backend-agnostic
+- backend-specific dependencies out of the core package
+- adapter creation standardized through a unified `LiveConfigAdapter` interface
+
+## Core Features
+
+- unified `ConfigStoreAdapter` and `ConfigSyncAdapter` contracts
+- optional unified `adapter` bundle for module registration
+- pub/sub-first synchronization when the backend supports it
+- polling fallback when push-based invalidation is unavailable
+- module-level read defaults plus per-call overrides
+- strict TypeScript with `strictNullChecks`
+- dual ESM and CommonJS output per published package
 
 ## Installation
 
+Install the core package and only the adapter packages you need.
+
+Redis example:
+
 ```bash
-npm install nestjs-live-configs
+npm install @nestjs-live-configs/core @nestjs-live-configs/adapter-redis
+```
+
+Postgres example:
+
+```bash
+npm install @nestjs-live-configs/core @nestjs-live-configs/adapter-postgres
+```
+
+SQLite example:
+
+```bash
+npm install @nestjs-live-configs/core @nestjs-live-configs/adapter-sqlite
 ```
 
 In a real Nest app you will also need the usual Nest peer dependencies:
@@ -41,7 +66,7 @@ npm install @nestjs/common @nestjs/core reflect-metadata rxjs
 Define configs once:
 
 ```ts
-import { defineConfig } from 'nestjs-live-configs';
+import { defineConfig } from '@nestjs-live-configs/core';
 
 export const welcomeMessageConfig = defineConfig<string>({
   key: 'app.welcome-message',
@@ -49,24 +74,20 @@ export const welcomeMessageConfig = defineConfig<string>({
 });
 ```
 
-Register the module with service defaults:
+Register the module with a unified adapter bundle:
 
 ```ts
-import {
-  LiveConfigModule,
-  createRedisKeyvStore,
-  createRedisSyncAdapter,
-} from 'nestjs-live-configs';
+import { Module } from '@nestjs/common';
+import { LiveConfigModule } from '@nestjs-live-configs/core';
+import { createRedisAdapter } from '@nestjs-live-configs/adapter-redis';
 
 @Module({
   imports: [
     LiveConfigModule.forRoot({
-      store: createRedisKeyvStore({
+      adapter: createRedisAdapter({
         uri: 'redis://localhost:6379',
         namespace: 'my-app',
-      }),
-      sync: createRedisSyncAdapter({
-        uri: 'redis://localhost:6379',
+        channel: 'live-config:changes',
       }),
       defaults: {
         preferPubSub: true,
@@ -83,7 +104,7 @@ Consume values through the service:
 
 ```ts
 import { Injectable } from '@nestjs/common';
-import { LiveConfigService } from 'nestjs-live-configs';
+import { LiveConfigService } from '@nestjs-live-configs/core';
 
 @Injectable()
 export class GreetingService {
@@ -110,6 +131,16 @@ const welcomeMessageRef = this.liveConfig.ref(welcomeMessageConfig, {
 
 const message = await welcomeMessageRef.get();
 ```
+
+## Advanced Custom Adapters
+
+If you need a backend that does not have a published adapter package yet, build against the core contracts:
+
+- `ConfigStoreAdapter`
+- `ConfigSyncAdapter`
+- `LiveConfigAdapter`
+
+The core package also exports `createKeyvStore()` and `KeyvStoreAdapter` for wrapping a custom `Keyv` instance without pulling Redis/Postgres/SQLite dependencies into the core package.
 
 ## Defaults And Per-Call Overrides
 
@@ -194,6 +225,15 @@ curl 'http://localhost:3000/settings/theme?watchIntervalMs=1000&preferPubSub=fal
 
 Demo environment variables are documented in `examples/demo-app/.env.example`.
 
+## Repository Layout
+
+- `packages/core`
+- `packages/adapter-redis`
+- `packages/adapter-postgres`
+- `packages/adapter-sqlite`
+- `examples/demo-app`
+- `nx.json`
+
 ## Local Development
 
 ```bash
@@ -204,6 +244,14 @@ npm test
 npm run build
 ```
 
+Useful Nx commands:
+
+```bash
+npm run nx -- show projects
+npm run nx -- graph
+npm run nx -- test @nestjs-live-configs/core
+```
+
 Pre-commit hooks run Prettier and ESLint through `lint-staged`.
 
 ## Cursor Workflow
@@ -212,15 +260,17 @@ Project-specific Cursor guidance lives in `.cursor/skills.md`.
 
 That file covers:
 
-- the intended module usage patterns
+- the Nx workspace layout and package split
 - the validation commands to run after code changes
 - the preferred live-sync model for new adapters and features
 - recommended editor and Cursor settings for this repo
 
+Shared project skills live in `.cursor/skills/`.
+
 ## CI And Releases
 
-- `.github/workflows/ci.yml` runs lint, typecheck, build, unit tests, and integration tests for SQLite, Redis, and Postgres.
-- `.github/workflows/release.yml` runs on pushes to `main` and uses Changesets for versioning and publishing.
+- `.github/workflows/ci.yml` runs Nx-powered lint, typecheck, build, core unit tests, and adapter integration tests
+- `.github/workflows/release.yml` runs on pushes to `main` and uses Changesets for multi-package versioning and publishing
 
 To prepare a user-facing change for release:
 
@@ -228,7 +278,7 @@ To prepare a user-facing change for release:
 npm run changeset
 ```
 
-When unpublished changesets reach `main`, the release workflow will open or update the release PR. When versioned release commits land on `main`, the workflow publishes the package using `NPM_TOKEN`.
+When unpublished changesets reach `main`, the release workflow opens or updates the release PR. When versioned release commits land on `main`, the workflow publishes changed packages using `NPM_TOKEN`.
 
 ## Dependency Updates
 
@@ -236,6 +286,6 @@ Dependabot configuration lives in `.github/dependabot.yml`.
 
 It is set up to check:
 
-- npm dependencies
+- npm workspace dependencies
 - GitHub Actions versions
 - Docker Compose image references

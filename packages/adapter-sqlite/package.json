@@ -1,0 +1,35 @@
+{
+  "name": "@nestjs-live-configs/adapter-sqlite",
+  "version": "0.1.0",
+  "description": "SQLite adapter package for nestjs live configs.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "test": "vitest --root ../../ run packages/adapter-sqlite/test/integration/sqlite-keyv.adapter.spec.ts --config vitest.config.ts",
+    "typecheck": "tsc --noEmit -p ../../tsconfig.json"
+  },
+  "dependencies": {
+    "@keyv/sqlite": "^4.0.8",
+    "@nestjs-live-configs/core": "^0.1.0",
+    "keyv": "^5.6.0"
+  }
+}

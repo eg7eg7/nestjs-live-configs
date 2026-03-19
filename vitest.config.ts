@@ -1,12 +1,14 @@
+import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  plugins: [tsconfigPaths()],
   test: {
     environment: 'node',
-    include: ['test/**/*.spec.ts'],
+    include: ['packages/**/*.spec.ts'],
     coverage: {
       reporter: ['text', 'lcov'],
-      include: ['src/**/*.ts'],
+      include: ['packages/*/src/**/*.ts'],
     },
   },
 });

@@ -1,15 +1,25 @@
 # Cursor Usage Guide
 
-This repository includes a NestJS library, a demo app, CI workflows, and release automation. Use this file as the quick-start guide when working on the project in Cursor.
+This repository includes an Nx-based multi-package NestJS live-config workspace, a demo app, CI workflows, and release automation. Use this file as the quick-start guide when working on the project in Cursor.
 
 ## What This Repo Does
 
-`nestjs-live-configs` provides a live configuration module for NestJS.
+`nestjs-live-configs` is now split into a core package plus backend-specific adapter packages.
+
+Main packages:
+
+- `packages/core`
+- `packages/adapter-redis`
+- `packages/adapter-postgres`
+- `packages/adapter-sqlite`
+- `examples/demo-app`
+- `nx.json`
 
 Core expectations:
 
 - define settings with `defineConfig()`
 - register the module with `LiveConfigModule.forRoot()` or `forRootAsync()`
+- prefer the unified `adapter` option for packaged backends
 - read values through `LiveConfigService` or `LiveConfigRef`
 - prefer pub/sub sync when the backend supports it
 - use polling only as a fallback
@@ -31,6 +41,13 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+```
+
+Useful Nx commands:
+
+```bash
+npm run nx -- show projects
+npm run nx -- graph
 ```
 
 Run the demo app:
@@ -63,13 +80,15 @@ When changing the library:
 
 - keep `LiveConfigService` as the main consumer-facing abstraction
 - preserve the distinction between storage adapters and sync adapters
+- keep the core package free of backend-specific runtime dependencies
 - keep pub/sub as the default preference for live updates
 - add or update tests for any behavior change
 - add a changeset for user-facing changes with `npm run changeset`
 
 When adding a new backend:
 
-- expose a store adapter through the Keyv-based abstraction
+- place backend-specific code in a dedicated package under `packages/`
+- expose a unified adapter bundle and any lower-level helpers from that package
 - add a sync adapter if the backend supports push-based invalidation
 - document the backend in `README.md`
 - add integration coverage when practical

@@ -1,4 +1,4 @@
-import { defineConfig } from '../../../src/index.ts';
+import { defineConfig } from '@nestjs-live-configs/core';
 
 export const demoMessageConfig = defineConfig<string>({
   key: 'demo.message',

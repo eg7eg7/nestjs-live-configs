@@ -1,0 +1,39 @@
+{
+  "name": "@nestjs-live-configs/core",
+  "version": "0.1.0",
+  "description": "Core NestJS live configuration module with unified adapter contracts.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "test": "vitest --root ../../ run packages/core/test/unit --config vitest.config.ts",
+    "typecheck": "tsc --noEmit -p ../../tsconfig.json"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=10",
+    "@nestjs/core": ">=10",
+    "reflect-metadata": ">=0.2",
+    "rxjs": ">=7"
+  },
+  "dependencies": {
+    "keyv": "^5.6.0"
+  }
+}

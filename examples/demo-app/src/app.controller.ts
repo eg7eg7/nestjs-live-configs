@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Put, Query } from '@nestjs/common';
 
-import type { LiveConfigReadOptions } from '../../../src/index.ts';
+import type { LiveConfigReadOptions } from '@nestjs-live-configs/core';
 import { AppService } from './app.service.ts';
 import { describeDemoBackend } from './live-config-backend.ts';
 

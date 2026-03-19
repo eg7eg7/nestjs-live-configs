@@ -7,7 +7,7 @@ description: Prepare releases for this repository with Changesets. Use when the 
 
 ## Quick Start
 
-This repo uses Changesets plus GitHub Actions for releases.
+This repo uses Changesets plus GitHub Actions for multi-package releases.
 
 Important files:
 
@@ -15,6 +15,7 @@ Important files:
 - `.changeset/README.md`
 - `.github/workflows/release.yml`
 - `package.json`
+- `packages/*/package.json`
 
 ## Standard Workflow
 
@@ -45,6 +46,7 @@ npm run build
 - Prefer explaining whether a change needs a changeset instead of silently skipping it.
 - If release automation changes, make sure CI and release docs still match the actual scripts in `package.json`.
 - Keep release PR and publish behavior aligned with pushes to `main`.
+- Remember that the demo app is private and should stay out of published package releases.
 
 ## When To Update Release Config
 

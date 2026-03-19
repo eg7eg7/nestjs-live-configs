@@ -16,6 +16,15 @@ npm test
 npm run build
 ```
 
+The workspace now contains:
+
+- `packages/core`
+- `packages/adapter-redis`
+- `packages/adapter-postgres`
+- `packages/adapter-sqlite`
+- `examples/demo-app`
+- `nx.json`
+
 ## Local Database Setup
 
 For Redis and Postgres paths, start local services first:
@@ -58,10 +67,17 @@ Useful manual checks:
 If a change affects integration behavior, compare it with:
 
 - `.github/workflows/ci.yml`
-- `test/integration/`
+- `packages/*/test/integration/`
 - `docker-compose.yml`
 
 Keep the local workflow and CI matrix aligned. If a backend is documented or demoed, decide whether it also needs CI coverage.
+
+For Nx-specific inspection, use:
+
+```bash
+npm run nx -- show projects
+npm run nx -- graph
+```
 
 ## Example Triggers
 

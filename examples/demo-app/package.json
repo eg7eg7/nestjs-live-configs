@@ -1,0 +1,21 @@
+{
+  "name": "@nestjs-live-configs/demo-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "dev": "tsx watch src/main.ts",
+    "typecheck": "tsc --noEmit -p ../../tsconfig.json"
+  },
+  "dependencies": {
+    "@nestjs-live-configs/adapter-postgres": "0.1.0",
+    "@nestjs-live-configs/adapter-redis": "0.1.0",
+    "@nestjs-live-configs/adapter-sqlite": "0.1.0",
+    "@nestjs-live-configs/core": "0.1.0",
+    "@nestjs/common": "^11.1.17",
+    "@nestjs/core": "^11.1.17",
+    "@nestjs/platform-express": "^11.1.17",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  }
+}

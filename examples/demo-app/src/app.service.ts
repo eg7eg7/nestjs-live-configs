@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import {
   LiveConfigService,
   type LiveConfigReadOptions,
-} from '../../../src/index.ts';
+} from '@nestjs-live-configs/core';
 import { demoMessageConfig, demoThemeConfig } from './demo.config.ts';
 
 @Injectable()

@@ -1,22 +1,17 @@
 import {
-  createPollingSyncAdapter,
-  createPostgresKeyvStore,
-  createPostgresSyncAdapter,
-  createRedisKeyvStore,
-  createRedisSyncAdapter,
-  createSqliteKeyvStore,
-  type ConfigStoreAdapter,
-  type ConfigSyncAdapter,
+  type LiveConfigAdapter,
   type LiveConfigDefaultOptions,
-} from '../../../src/index.ts';
+} from '@nestjs-live-configs/core';
+import { createPostgresAdapter } from '@nestjs-live-configs/adapter-postgres';
+import { createRedisAdapter } from '@nestjs-live-configs/adapter-redis';
+import { createSqliteAdapter } from '@nestjs-live-configs/adapter-sqlite';
 
 type DemoDriver = 'sqlite' | 'redis' | 'postgres';
 
 export interface DemoBackend {
   driver: DemoDriver;
   defaults: LiveConfigDefaultOptions;
-  store: ConfigStoreAdapter;
-  sync: ConfigSyncAdapter;
+  adapter: LiveConfigAdapter;
 }
 
 export function createDemoBackend(env: NodeJS.ProcessEnv): DemoBackend {
@@ -25,12 +20,9 @@ export function createDemoBackend(env: NodeJS.ProcessEnv): DemoBackend {
   if (description.driver === 'redis') {
     return {
       ...description,
-      store: createRedisKeyvStore({
+      adapter: createRedisAdapter({
         uri: env.LIVE_CONFIG_REDIS_URL ?? 'redis://localhost:6379',
         namespace: env.LIVE_CONFIG_NAMESPACE ?? 'demo-app',
-      }),
-      sync: createRedisSyncAdapter({
-        uri: env.LIVE_CONFIG_REDIS_URL ?? 'redis://localhost:6379',
         channel: env.LIVE_CONFIG_CHANNEL ?? 'demo-live-config',
       }),
     };
@@ -39,33 +31,24 @@ export function createDemoBackend(env: NodeJS.ProcessEnv): DemoBackend {
   if (description.driver === 'postgres') {
     return {
       ...description,
-      store: createPostgresKeyvStore({
+      adapter: createPostgresAdapter({
         uri:
           env.LIVE_CONFIG_POSTGRES_URL ??
           'postgres://postgres:postgres@localhost:5432/live_config',
         namespace: env.LIVE_CONFIG_NAMESPACE ?? 'demo-app',
         table: env.LIVE_CONFIG_POSTGRES_TABLE ?? 'live_config_values',
-      }),
-      sync: createPostgresSyncAdapter({
-        connectionString:
-          env.LIVE_CONFIG_POSTGRES_URL ??
-          'postgres://postgres:postgres@localhost:5432/live_config',
         channel: env.LIVE_CONFIG_CHANNEL ?? 'demo_live_config',
       }),
     };
   }
 
-  const store = createSqliteKeyvStore({
-    uri: env.LIVE_CONFIG_SQLITE_URI ?? 'sqlite://./tmp/live-config-demo.sqlite',
-    namespace: env.LIVE_CONFIG_NAMESPACE ?? 'demo-app',
-    table: env.LIVE_CONFIG_SQLITE_TABLE ?? 'live_config_values',
-  });
-
   return {
     ...description,
-    store,
-    sync: createPollingSyncAdapter({
-      store,
+    adapter: createSqliteAdapter({
+      uri:
+        env.LIVE_CONFIG_SQLITE_URI ?? 'sqlite://./tmp/live-config-demo.sqlite',
+      namespace: env.LIVE_CONFIG_NAMESPACE ?? 'demo-app',
+      table: env.LIVE_CONFIG_SQLITE_TABLE ?? 'live_config_values',
     }),
   };
 }
