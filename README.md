@@ -1,87 +1,116 @@
 # `nestjs-live-configs`
 
-Nx monorepo for a split NestJS live-configuration system.
+Runtime-editable configuration for NestJS applications.
 
-The core rule is unchanged: consuming services should resolve settings through `LiveConfigService` or `LiveConfigRef`, not by injecting boot-time primitive values. That keeps reads fresh when configuration changes at runtime.
+This library lets you store app settings in Redis, Postgres, SQLite, or MongoDB, read them through a typed Nest service, and have running app instances see changes without a restart. It is meant for values like feature flags, UI text, throttling thresholds, tenant settings, and operational toggles that should change after boot.
+
+If your configuration only comes from environment variables and only changes on deploy, this is probably not the tool you need. If you want typed config definitions, shared storage, and live refresh behavior across running Nest services, this library is built for that.
+
+## What It Does
+
+- defines config keys in TypeScript with defaults, validation, and optional custom serialization
+- reads config values through `LiveConfigService` or `LiveConfigRef`
+- stores values in a shared backend instead of freezing them at app startup
+- refreshes values through pub/sub when the backend supports it, or polling when it does not
+- keeps the core Nest integration backend-agnostic so you only install the adapter you need
+
+## When This Library Fits
+
+Use it if:
+
+- you need some settings to change without restarting your Nest app
+- you run multiple instances and want config updates to propagate between them
+- you want config values to be typed, validated, and supplied with safe defaults
+- you are building your own admin endpoint or UI for changing settings at runtime
+
+Probably not a fit if:
+
+- all configuration comes from `.env` or deployment-time secrets
+- your values never change while the process is running
+- you do not want a backing store for shared config state
+- you are looking for a complete admin dashboard, auth layer, or policy system
+
+## How It Works
+
+1. Define a config key once with `defineConfig()`.
+2. Register `LiveConfigModule` with a store adapter and optional sync adapter bundle.
+3. Read values through `LiveConfigService.get()` or a reusable `LiveConfigRef`.
+4. Update values through `LiveConfigService.set()` or your own write path, and other instances refresh through pub/sub or polling.
+
+The important design rule is simple: consumer code should read through `LiveConfigService` or `LiveConfigRef`, not by injecting primitive values at boot time. That is what keeps reads fresh after runtime updates.
 
 ## Packages
 
 This repo is split so consumers install only the backend packages they need.
 
-- `@nestjs-live-configs/core`: Nest module, service, config definition helpers, unified adapter contracts, noop sync, polling sync, and generic `KeyvStoreAdapter`
-- `@nestjs-live-configs/adapter-mongo`: MongoDB Keyv store plus polling-oriented adapter bundle
-- `@nestjs-live-configs/adapter-redis`: Redis Keyv store plus Redis pub/sub sync
-- `@nestjs-live-configs/adapter-postgres`: Postgres Keyv store plus `LISTEN`/`NOTIFY` sync
-- `@nestjs-live-configs/adapter-sqlite`: SQLite Keyv store plus polling-oriented adapter bundle
+| Package                                 | Backend  | Sync model                       | Good fit                                                    |
+| --------------------------------------- | -------- | -------------------------------- | ----------------------------------------------------------- |
+| `@nestjs-live-configs/core`             | none     | noop, polling helpers, contracts | Required in every setup                                     |
+| `@nestjs-live-configs/adapter-redis`    | Redis    | Redis pub/sub                    | Best when you already use Redis and want push-based updates |
+| `@nestjs-live-configs/adapter-postgres` | Postgres | `LISTEN`/`NOTIFY`                | Good when Postgres is already your shared system of record  |
+| `@nestjs-live-configs/adapter-sqlite`   | SQLite   | polling                          | Simple local or single-node setups                          |
+| `@nestjs-live-configs/adapter-mongo`    | MongoDB  | polling                          | Good when Mongo is your existing storage backend            |
 
-## Why The Split
+## Requirements
 
-The old all-in-one package forced consumers to install Redis, Postgres, SQLite, and MongoDB-related packages even when they only needed one backend.
-
-The current structure keeps:
-
-- the core service API backend-agnostic
-- backend-specific dependencies out of the core package
-- adapter creation standardized through a unified `LiveConfigAdapter` interface
-
-## Core Features
-
-- unified `ConfigStoreAdapter` and `ConfigSyncAdapter` contracts
-- optional unified `adapter` bundle for module registration
-- pub/sub-first synchronization when the backend supports it
-- polling fallback when push-based invalidation is unavailable
-- module-level read defaults plus per-call overrides
-- strict TypeScript with `strictNullChecks`
-- dual ESM and CommonJS output per published package
+- Node.js `>=20`
+- NestJS `>=10`
+- peer dependencies: `@nestjs/common`, `@nestjs/core`, `reflect-metadata`, `rxjs`
 
 ## Installation
 
-Install the core package and only the adapter packages you need.
+Install the core package and only the adapter package you want.
 
-Redis example:
+Redis:
 
 ```bash
 npm install @nestjs-live-configs/core @nestjs-live-configs/adapter-redis
 ```
 
-Postgres example:
+Postgres:
 
 ```bash
 npm install @nestjs-live-configs/core @nestjs-live-configs/adapter-postgres
 ```
 
-SQLite example:
+SQLite:
 
 ```bash
 npm install @nestjs-live-configs/core @nestjs-live-configs/adapter-sqlite
 ```
 
-MongoDB example:
+MongoDB:
 
 ```bash
 npm install @nestjs-live-configs/core @nestjs-live-configs/adapter-mongo
 ```
 
-In a real Nest app you will also need the usual Nest peer dependencies:
+Nest peer dependencies:
 
 ```bash
 npm install @nestjs/common @nestjs/core reflect-metadata rxjs
 ```
 
-## Basic Usage
+## Quick Start
 
-Define configs once:
+Define a config:
 
 ```ts
 import { defineConfig } from '@nestjs-live-configs/core';
 
 export const welcomeMessageConfig = defineConfig<string>({
   key: 'app.welcome-message',
+  description: 'Message returned by the greeting endpoint',
   defaultValue: 'Hello world',
+  validate: (value) => {
+    if (value.trim().length === 0) {
+      throw new Error('app.welcome-message cannot be empty');
+    }
+  },
 });
 ```
 
-Register the module with a unified adapter bundle:
+Register the module with an adapter:
 
 ```ts
 import { Module } from '@nestjs/common';
@@ -92,7 +121,7 @@ import { createRedisAdapter } from '@nestjs-live-configs/adapter-redis';
   imports: [
     LiveConfigModule.forRoot({
       adapter: createRedisAdapter({
-        uri: 'redis://localhost:6379',
+        uri: 'redis://127.0.0.1:6379',
         namespace: 'my-app',
         channel: 'live-config:changes',
       }),
@@ -107,7 +136,7 @@ import { createRedisAdapter } from '@nestjs-live-configs/adapter-redis';
 export class AppModule {}
 ```
 
-Consume values through the service:
+Read and update values through the service:
 
 ```ts
 import { Injectable } from '@nestjs/common';
@@ -115,21 +144,25 @@ import { LiveConfigService } from '@nestjs-live-configs/core';
 
 @Injectable()
 export class GreetingService {
-  constructor(private readonly liveConfig: LiveConfigService) {}
+  public constructor(private readonly liveConfig: LiveConfigService) {}
 
-  async getMessage(): Promise<string> {
+  public async getMessage(): Promise<string> {
     return this.liveConfig.get(welcomeMessageConfig);
   }
 
-  async getFreshMessage(): Promise<string> {
+  public async getFreshMessage(): Promise<string> {
     return this.liveConfig.get(welcomeMessageConfig, {
       forceRefresh: true,
     });
   }
+
+  public async updateMessage(message: string): Promise<string> {
+    return this.liveConfig.set(welcomeMessageConfig, message);
+  }
 }
 ```
 
-Or keep a reusable ref:
+For repeated reads, keep a reusable ref:
 
 ```ts
 const welcomeMessageRef = this.liveConfig.ref(welcomeMessageConfig, {
@@ -139,17 +172,7 @@ const welcomeMessageRef = this.liveConfig.ref(welcomeMessageConfig, {
 const message = await welcomeMessageRef.get();
 ```
 
-## Advanced Custom Adapters
-
-If you need a backend that does not have a published adapter package yet, build against the core contracts:
-
-- `ConfigStoreAdapter`
-- `ConfigSyncAdapter`
-- `LiveConfigAdapter`
-
-The core package also exports `createKeyvStore()` and `KeyvStoreAdapter` for wrapping a custom `Keyv` instance without pulling Redis/Postgres/SQLite/MongoDB dependencies into the core package.
-
-## Defaults And Per-Call Overrides
+## Read Behavior
 
 Module registration accepts defaults that apply to all reads:
 
@@ -170,7 +193,7 @@ await liveConfig.get(myConfig, {
 The intended behavior is:
 
 - prefer pub/sub when the selected sync adapter supports it
-- use polling when live push is not available
+- use polling when push-based invalidation is unavailable
 - fall back to read-through refreshes when no other live mechanism is configured
 - clamp unsafe polling and staleness values to bounded ranges before using them
 
@@ -189,11 +212,21 @@ try {
 }
 ```
 
+## Custom Adapters
+
+If you need a backend that does not have a published adapter package yet, build against the core contracts:
+
+- `ConfigStoreAdapter`
+- `ConfigSyncAdapter`
+- `LiveConfigAdapter`
+
+The core package also exports `createKeyvStore()` and `KeyvStoreAdapter` for wrapping a custom `Keyv` instance without pulling Redis, Postgres, SQLite, or MongoDB dependencies into the core package.
+
 ## Demo App
 
 The demo app lives in `examples/demo-app`.
 
-The demo is intentionally local-development only. It now uses Nest DTO validation and binds to `127.0.0.1` by default, but it still should not be treated as production-ready authentication or admin tooling.
+It is useful for understanding the request flow, adapter setup, and update behavior, but it is intentionally local-development only. It should not be treated as production-ready authentication or admin tooling.
 
 Start the local databases:
 
@@ -234,7 +267,7 @@ Useful endpoints:
 - `GET /settings/theme`
 - `PUT /settings/theme`
 
-Example request:
+Example update request:
 
 ```bash
 curl -X PUT http://localhost:3000/settings/message \
@@ -260,10 +293,10 @@ Demo environment variables are documented in `examples/demo-app/.env.example`.
 
 Treat access to the backing store and the sync transport as privileged.
 
-- Anyone who can write to the Redis or Postgres sync channel can trigger refresh attempts for known config keys.
-- The Redis/Postgres adapters now ignore malformed change events, but channel access should still be protected as tightly as write access to the config store itself.
-- Postgres channel names are restricted to safe identifier-style values before `LISTEN` or `UNLISTEN` is used.
-- Unknown keys from pub/sub are ignored so arbitrary events cannot grow the cache through blind refreshes.
+- anyone who can write to the Redis or Postgres sync channel can trigger refresh attempts for known config keys
+- Redis and Postgres adapters ignore malformed change events, but channel access should still be protected as tightly as write access to the config store itself
+- Postgres channel names are restricted to safe identifier-style values before `LISTEN` or `UNLISTEN` is used
+- unknown keys from pub/sub are ignored so arbitrary events cannot grow the cache through blind refreshes
 
 ## Repository Layout
 
