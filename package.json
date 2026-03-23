@@ -43,7 +43,7 @@
     "@nx/eslint": "22.6.0",
     "@nx/vitest": "22.6.0",
     "@types/node": "^25.5.0",
-    "@types/pg": "^8.18.0",
+    "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^10.0.3",
     "globals": "^17.4.0",
