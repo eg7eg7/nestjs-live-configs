@@ -40,7 +40,7 @@
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
     "@nestjs/testing": "^11.1.17",
-    "@nx/eslint": "22.6.0",
+    "@nx/eslint": "22.6.3",
     "@nx/vitest": "22.6.0",
     "@types/node": "^25.5.0",
     "@types/pg": "^8.18.0",
