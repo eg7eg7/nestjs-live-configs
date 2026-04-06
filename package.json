@@ -37,7 +37,7 @@
     "@eslint/js": "^10.0.1",
     "@nestjs/cli": "^11.0.16",
     "@nestjs/common": "^11.1.17",
-    "@nestjs/core": "^11.1.17",
+    "@nestjs/core": "^11.1.18",
     "@nestjs/platform-express": "^11.1.17",
     "@nestjs/testing": "^11.1.17",
     "@nx/eslint": "22.6.0",
